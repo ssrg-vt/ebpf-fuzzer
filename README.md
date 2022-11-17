@@ -15,6 +15,9 @@ make -j8
 
 3) Build the sample program
 
+
+[tools/lkl/bytecode/hello.c](tools/lkl/bytecode/hello.c)
+
 ```
 ./build.sh hello
 ```
