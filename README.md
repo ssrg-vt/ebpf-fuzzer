@@ -1,3 +1,5 @@
+
+#### Build and Test LKL
 1) Build LKL Kernel
 
 ```
@@ -20,4 +22,12 @@ make -j8
 
 ```
 ./build.sh hello
+```
+
+
+#### Run Random EBPF Generator
+
+```
+cd tools/lkl
+python3  ebpf_gen.py
 ```
