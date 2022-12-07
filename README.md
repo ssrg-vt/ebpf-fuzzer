@@ -28,6 +28,6 @@ make -j8
 #### Run Random EBPF Generator
 
 ```
-cd tools/lkl
+cd tools/lkl/bytecode/
 python3  ebpf_gen.py
 ```
