@@ -4,6 +4,10 @@ import subprocess
 
 import sys
 
+
+
+PRINT_DEBUG=0
+
 STR_HEAD='''
 #include <errno.h>
 #include <string.h>
@@ -325,7 +329,7 @@ def check_src_register_intiliazed(src_reg):
     else:
         print("Register Not Initialized : REG_"+str(src_reg))
 
-def gen_mov_insn():
+def gen_mov_insn(random_insn_list):
 
     is_64_bit = random.randint(0,1)
     alu_imm = random.randint(0,1)
@@ -340,7 +344,6 @@ def gen_mov_insn():
     off = 0
     imm = random.randint(-0xffff,0xffff) if alu_imm == 1 else 0
    
-    check_src_register_intiliazed(src_reg)
     insn = {}
     insn["code"] = code;
     insn["dst_reg"] = dst_reg;
@@ -348,11 +351,11 @@ def gen_mov_insn():
     insn["off"] = off;
     insn["imm"] = imm;
     
-    #print_insn(insn)
-    return insn
+    random_insn_list.append(insn)
+    return random_insn_list
 
 
-def gen_exit_insn():
+def gen_exit_insn(random_insn_list):
     insn = {}
     insn["code"] = BPF_JMP | BPF_EXIT ;
     insn["dst_reg"] = 0;
@@ -360,9 +363,10 @@ def gen_exit_insn():
     insn["off"] = 0;
     insn["imm"] = 0;
    
-    return insn
+    random_insn_list.append(insn)
+    return random_insn_list
 
-def gen_jmp_insn():
+def gen_jmp_insn(random_insn_list):
 
     is_64_bit = random.randint(0,1)
     jmp_imm = random.randint(0,1)
@@ -371,7 +375,13 @@ def gen_jmp_insn():
 
     # to avoid exit 
     if op == BPF_EXIT:
-        op +=1
+        op += 0x10
+    if is_64_bit == 0 and op == BPF_JA:    # JM_JA is only for JMP 64
+        op += 0x10
+    if op == BPF_CALL:
+        op += 0x10
+
+
     bpf_jmp_class = BPF_JMP if is_64_bit == 1 else BPF_JMP32
     bpf_op_src = BPF_K if jmp_imm == 1 else BPF_X 
 
@@ -383,16 +393,17 @@ def gen_jmp_insn():
 
     insn = {}
     insn["code"] = code;
-    print("JMP code " + hex(code) ) 
+    #print("JMP code " + hex(code) ) 
     insn["dst_reg"] = dst_reg;
     insn["src_reg"] = src_reg;
     insn["off"] = off;
     insn["imm"] = imm;
     
-    return insn
+    random_insn_list.append(insn)
+    return random_insn_list
 
 
-def gen_alu_insn():
+def gen_alu_insn(random_insn_list):
 
     is_64_bit = random.randint(0,1)
     alu_imm = random.randint(0,1)
@@ -418,16 +429,16 @@ def gen_alu_insn():
         src_reg = 0 
         imm = 0 
         code = code & 0xf7 # clear the register/imm bit
-    # check_src_register_intiliazed(src_reg)
     insn = {}
     insn["code"] = code;
     insn["dst_reg"] = dst_reg;
     insn["src_reg"] = src_reg;
     insn["off"] = off;
     insn["imm"] = imm;
-    
-    #print_insn(insn)
-    return insn
+
+    random_insn_list.append(insn)
+    return random_insn_list
+
 
 
 '''
@@ -457,7 +468,7 @@ STx -> ran(REG) , imm = 0
 ST_TYPE_IMM = 0
 ST_TYPE_REG = 1
 
-def gen_st_insn():
+def gen_st_insn(random_insn_list):
 
     st_type = random.randint(0,1)
 
@@ -468,13 +479,14 @@ def gen_st_insn():
     dst_reg = get_random_bpf_reg(0);
     insn["dst_reg"] = dst_reg 
     insn["src_reg"] = random.choice(BPF_REG_LIST) if st_type == ST_TYPE_REG else  0
-    insn["off"] = random.randint(0,16);
+    insn["off"] = random.randint(1,16);
     insn["imm"] = 0  if st_type == ST_TYPE_REG else random.randint(-0xffffffff,0xffffffff); 
    
-    print(hex(code))
-    return insn
+    #print(hex(code))
+    random_insn_list.append(insn)
+    return random_insn_list
 
-def gen_ld_insn():
+def gen_ld_insn(random_insn_list):
 
     insn_list = []
 
@@ -496,7 +508,7 @@ def gen_ld_insn():
     insn["off"] = off;
     insn["imm"] = imm & 0xffffffff  
     
-    insn_list.append(insn)
+    random_insn_list.append(insn)
 
     insn = {}
     insn["code"] = 0;
@@ -505,9 +517,9 @@ def gen_ld_insn():
     insn["off"] = 0;
     insn["imm"] = (imm >> 32) & 0xffffffff  
 
-    insn_list.append(insn)
+    random_insn_list.append(insn)
     
-    return insn_list[0], insn_list[1]
+    return random_insn_list
 
 
 '''
@@ -593,7 +605,7 @@ def print_ld_64_insn(insn_0,insn_1):
     return insn_str 
 
 def print_exit_insn(insn):
-    return "BPF_EXIT_INSN()\n"
+    return "BPF_EXIT_INSN(),\n"
     
 def _print_bpf_insn_to_str(insn):
    
@@ -620,9 +632,9 @@ def print_st_insn(insn):
     insn_str += ", "
     insn_str += BPF_REG_TO_STR[insn["dst_reg"]]
     insn_str += ", "
-    insn_str += BPF_REG_TO_STR[insn["src_reg"]]  if insn["code"] & 0x7 == BPF_STX  else "0"
+    insn_str += BPF_REG_TO_STR[insn["src_reg"]]  if insn["code"] & 0x7 == BPF_STX  else hex(insn["off"]) 
     insn_str += ", "
-    insn_str += hex(insn["off"])
+    insn_str += "0"  if insn["code"] & 0x7 == BPF_STX  else hex(insn["imm"])
     insn_str += "), "
 
     return insn_str
@@ -636,6 +648,7 @@ def check_dst_reg_needs_initialized(insn):
         insn_opcode = insn["code"] & 0xf0
         if insn_opcode != BPF_MOV:
             return True
+
     return False
 
 
@@ -647,7 +660,7 @@ def fix_unintialized(insn_list):
             continue;
         if reg_init[insn["src_reg"]] == False and insn["src_reg"] != BPF_REG_10:
 
-            print("WARNING REG_" +str(insn["src_reg"]))
+            #print("WARNING REG_" +str(insn["src_reg"]))
             new_insn = {}
             new_insn["code"] = BPF_OP(BPF_MOV) | BPF_K | BPF_ALU
             new_insn["dst_reg"] = insn["src_reg"]
@@ -660,7 +673,7 @@ def fix_unintialized(insn_list):
 
         if check_dst_reg_needs_initialized(insn) == True:
             new_insn = {}
-            new_insn["code"] = BPF_OP(BPF_MOV) | BPF_K | BPF_ALU
+            new_insn["code"] = BPF_OP(BPF_MOV) | BPF_K | BPF_ALU64
             new_insn["dst_reg"] = insn["dst_reg"]
             new_insn["src_reg"] = 0
             new_insn["off"] = 0
@@ -669,6 +682,19 @@ def fix_unintialized(insn_list):
             reg_init[ insn["dst_reg"]] = True
             skip_count += 1
 
+        insn_class =  (insn["code"] & 0x07) 
+        if ((insn_class == BPF_ST) or (insn_class == BPF_STX)) and reg_init[insn["dst_reg"]] == False:
+            new_insn = {}
+            new_insn["code"] = BPF_OP(BPF_MOV) | BPF_X | BPF_ALU64
+            new_insn["dst_reg"] = insn["dst_reg"]
+            new_insn["src_reg"] = BPF_REG_10 # Stack Pointer
+            new_insn["off"] = -1 * random.randint(0,16)
+            new_insn["imm"] = 0 
+            insn_list.insert(index,new_insn)
+            reg_init[ insn["dst_reg"]] = True
+            skip_count += 1
+ 
+         
         reg_init[insn["dst_reg"]] == True
 
     return insn_list
@@ -693,36 +719,73 @@ def print_bpf_insn_to_str(insn_list):
             continue
 
 
-        print_insn(insn)
+#        print_insn(insn)
         insn_str += _print_bpf_insn_to_str(insn)    
         insn_str += "\n"
 
     return insn_str
 
 
-def random_bpf_insn():
+
+INSN_TYPE_ALU =0
+INSN_TYPE_MOV =1
+INSN_TYPE_LD  =2
+INSN_TYPE_ST  =3
+INSN_TYPE_JMP =4
+INSN_TYPE_MAX =5
+
+def random_bpf_insn_var_len(target_insn_len):
+
+    insn_len=0;
+    random_insn_list = []
+    
+    while len(random_insn_list) < target_insn_len:
+        insn_type = random.randint(0,INSN_TYPE_MAX-1)
+    
+        if(insn_type == INSN_TYPE_ALU):
+            random_insn_list = gen_alu_insn(random_insn_list)
+        elif(insn_type == INSN_TYPE_MOV):
+            random_insn_list = gen_mov_insn(random_insn_list)
+        elif(insn_type == INSN_TYPE_LD):
+            random_insn_list = gen_ld_insn(random_insn_list) 
+        elif(insn_type == INSN_TYPE_ST):
+            random_insn_list = gen_st_insn(random_insn_list)
+        elif(insn_type == INSN_TYPE_JMP):
+            random_insn_list = gen_jmp_insn(random_insn_list)
+    
+    # Finish with Exit Instruction
+    random_insn_list = gen_exit_insn(random_insn_list)
+            
+    random_insn_list = fix_unintialized(random_insn_list) 
+
+    return print_bpf_insn_to_str(random_insn_list)
+    
+
+ 
+def random_bpf_insn_all_class():
 
     random_insn_list = []
-    random_insn_list.append(gen_alu_insn())
-    random_insn_list.append(gen_mov_insn())
-    insn_0, insn_1 = gen_ld_insn() 
-    random_insn_list.append(insn_0)
-    random_insn_list.append(insn_1)
 
-    random_insn_list.append(gen_st_insn())
-    random_insn_list.append(gen_jmp_insn())
-    random_insn_list.append(gen_exit_insn())
+    random_insn_list = gen_alu_insn(random_insn_list)
+    random_insn_list = gen_mov_insn(random_insn_list)
+    random_insn_list = gen_ld_insn(random_insn_list) 
+    random_insn_list = gen_st_insn(random_insn_list)
+    random_insn_list = gen_jmp_insn(random_insn_list)
+    random_insn_list = gen_exit_insn(random_insn_list)
 
-
-    random_insn_list = fix_unintialized(random_insn_list)
-   
-
-    pprint.pprint(random_insn_list)
-   
+    random_insn_list = fix_unintialized(random_insn_list) 
+    if PRINT_DEBUG:
+        pprint.pprint(random_insn_list)
      
     return print_bpf_insn_to_str(random_insn_list)
 
 
+def check_verification_status(out):
+
+    for line in out:
+        if "BPF Verification Failed" in line:
+            return False
+    return True
 
 # Main
 ##########################################################
@@ -737,25 +800,33 @@ for i  in range(0,11):
     reg_init[i] = False;
 
 if not use_last_code:    
-    random_str = random_bpf_insn() 
+    #random_str = random_bpf_insn_all_class() 
+    random_str = random_bpf_insn_var_len(random.randint(2,200) )#to do max_size 
     c_contents  = STR_HEAD + random_str + STR_TAIL
 
     f = open("bytecode/out.c","w")
     f.write(c_contents)
     f.close()
 
+if PRINT_DEBUG:
+    for i  in range(0,11):
+        print("reg_" + str(i) + " " + str(reg_init[i]))
 
-for i  in range(0,11):
-    print("reg_" + str(i) + " " + str(reg_init[i]))
-
+# Compile Loader Program 
 build_cmd = "bash ./build.sh out"
 build_out = subprocess.run(build_cmd.split(' '))
 
+# Execute 
 exec_cmd = "./out"
 ebpf_out = subprocess.run(exec_cmd.split(' '),stdout=subprocess.PIPE)
 
-print(ebpf_out.stdout.decode("utf-8"))
+ebpf_out = ebpf_out.stdout.decode("utf-8")
+
+if(check_verification_status(ebpf_out)):
+    print("Verification Passed")
+else:
+    print("Verification Failed")
+    print(random_str)
 
 if not use_last_code:    
     print(random_str)
-

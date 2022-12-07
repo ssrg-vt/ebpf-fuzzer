@@ -14,7 +14,7 @@ if [ -z "$1" ]; then
 	exit
 fi 
 
-echo "Compiling LKL executable:  $1\n"
+#echo "Compiling LKL executable:  $1\n"
 OBJ=$1
 
 gcc -fPIC -pthread  -Iinclude  -g  -D"BUILD_STR(s)=#s" -c -o ${OBJ}.o bytecode/${OBJ}.c ;
