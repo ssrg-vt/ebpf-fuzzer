@@ -17,22 +17,22 @@ def check_verification_status(out):
     st = True
     output_lines = out.split("\n")
     for index,line in enumerate(output_lines) :
-        print(line)
+#        print(line)
         if "BPF Verification Failed" in line:
             st = False
             triage_failure(output_lines[index:])
         if "ASSERT_ERROR" in  line:
             print("===============ALU_ERROR=============")
-            val = input("")
+#            val = input("")
     return st
 
 
 def run_single_ebpf_prog():
     
     ebpf_gen = eBPFGenerator()
-    random_str = ebpf_gen.generate_instructions(random.randint(2,200) )#to do max_size 
-    c_contents  = cLoaderProg.LOADER_PROG_HEAD + random_str + cLoaderProg.LOADER_PROG_TAIL
-
+    random_str = ebpf_gen.generate_instructions(random.randint(2,10) )#to do max_size 
+    #c_contents  = cLoaderProg.LOADER_PROG_HEAD + random_str + cLoaderProg.LOADER_PROG_TAIL
+    c_contents  = cLoaderProg.LOADER_PROG_HEAD + cLoaderProg.LOADER_PROG_EXPLOIT + random_str +  cLoaderProg.LOADER_PROG_TAIL
     #filename = "out_" + hex(random.randint(0xffffff, 0xfffffffffff))[2:]
     filename = "test"
     f = open(filename+".c","w")

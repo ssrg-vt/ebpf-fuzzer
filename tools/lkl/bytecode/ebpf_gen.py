@@ -158,9 +158,3 @@ while True:
     
 for thread in threads:
     thread.join()
-
-
-
-# Compile Loader Program 
-#if not use_last_code:    
-#    print(random_str)
