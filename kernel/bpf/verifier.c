@@ -6434,6 +6434,12 @@ static int adjust_scalar_min_max_vals(struct bpf_verifier_env *env,
 	__update_reg_bounds(dst_reg);
 	__reg_deduce_bounds(dst_reg);
 	__reg_bound_offset(dst_reg);
+	if(dst_reg->u32_max_value < dst_reg->u32_min_value){
+		printk("ASSERT_ERROR\n");
+	}
+	if(dst_reg->s32_max_value < dst_reg->s32_min_value){
+		printk("ASSERT_ERROR\n");
+	}
 	return 0;
 }
 

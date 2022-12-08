@@ -48,6 +48,7 @@ def random_bpf_insn_all_class():
 
 def check_verification_status(out):
 
+    global assert_error 
     st = True
     output_lines = out.split("\n")
     for index,line in enumerate(output_lines) :
@@ -57,8 +58,7 @@ def check_verification_status(out):
             triage_failure(output_lines[index:])
         if "ASSERT_ERROR" in  line:
             print("===============ALU_ERROR=============")
-            val = input("")
-
+            assert_error  += 1 
     return st
 
 
@@ -141,6 +141,7 @@ last_print = -1
 #   if total_run % 5 == 0 and (total_run % 5) !=  last_print:
 #       last_print = total_run % 5
 
+assert_error = 0
 while True:
     time.sleep(1)  
     t_1 = timeit.default_timer()
@@ -150,7 +151,7 @@ while True:
     if elapsed_time == 0:
         elapsed_time = 1
     speed = round(total_run*1.0/(elapsed_time),1)
-    print("Time:%d  Pass:%d Fail:%d Total:%s Speed:%.1f" % ( elapsed_time, FUZZER_ST_VER_PASS, FUZZER_ST_VER_FAIL, total_run ,speed ))
+    print("Time:%d  Pass:%d Fail:%d Total:%s Speed:%.1f AE=%d" % ( elapsed_time, FUZZER_ST_VER_PASS, FUZZER_ST_VER_FAIL, total_run ,speed,assert_error ))
     if total_run > MAX_RUN_COUNT:
         STOP_FUZZER = True
         break 
