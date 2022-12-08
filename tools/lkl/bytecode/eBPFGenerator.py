@@ -126,8 +126,8 @@ class eBPFGenerator:
                 self.gen_mov_insn()
             elif(insn_type == INSN_TYPE_LD):
                 self.gen_ld_insn() 
-            elif(insn_type == INSN_TYPE_ST):
-                self.gen_st_insn()
+#            elif(insn_type == INSN_TYPE_ST):
+#                 self.gen_st_insn()
             elif(insn_type == INSN_TYPE_JMP):
                 self.gen_jmp_insn()
         
@@ -186,7 +186,7 @@ class eBPFGenerator:
         if is_64_bit == 0 and op == BPF_JA:    # JM_JA is only for JMP 64
             op += 0x10
         if op == BPF_CALL:
-            op += 0x10
+            op += 0x20
 
 
         bpf_jmp_class = BPF_JMP if is_64_bit == 1 else BPF_JMP32
@@ -198,6 +198,9 @@ class eBPFGenerator:
         off = random.randint(0,1); # TODO 
         imm = random.randint(0,1) if jmp_imm == 1 else 0
 
+        if op==BPF_JA:
+            dst_reg = 0
+            code = code & (0xf7)  # JA requires only off, clear reg/imm bit
         insn = {}
         insn["code"] = code;
         #print("JMP code " + hex(code) ) 
@@ -229,7 +232,7 @@ class eBPFGenerator:
         if insn_opcode == BPF_LSH or insn_opcode == BPF_RSH:
             if imm:
                 max_shift =  63 if(is_64_bit) else 31;
-                imm = random.randint(0,32)
+                imm = random.randint(0,max_shift)
             
         if insn_opcode == BPF_NEG:
             src_reg = 0 
@@ -510,11 +513,8 @@ class eBPFGenerator:
             insn_opcode = insn["code"] & 0xf0
             if insn_opcode != BPF_MOV:
                 return True
+        if insn_class == BPF_JMP or BPF_JMP32:
+            return True
 
         return False
-
-     
-
-
-
 

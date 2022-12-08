@@ -147,7 +147,7 @@ int main(void)
 #		BPF_MOV32_IMM(BPF_REG_0, 2),          // R0 = 2
 #		BPF_EXIT_INSN()                       // exit()
 
-LOADER_PROG_TAIL=='''
+LOADER_PROG_TAIL='''
 	};
 
 	int insn_cnt = sizeof(prog_valid) / sizeof(struct bpf_insn);
