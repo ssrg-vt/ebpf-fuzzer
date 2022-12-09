@@ -15,10 +15,11 @@ from threading import Condition
 from timeit import default_timer as timer
 from datetime import timedelta
 
+import shutil
 
 
 PRINT_DEBUG=0
-MAX_RUN_COUNT = 1000
+MAX_RUN_COUNT = 100000
 
 def triage_failure(verifier_out):
     file1 = open("verifier_error.txt", "a")  # append mode
@@ -46,7 +47,7 @@ def random_bpf_insn_all_class():
     return print_bpf_insn_to_str(random_insn_list)
 
 
-def check_verification_status(out):
+def check_verification_status(out,filename):
 
     global assert_error 
     st = True
@@ -59,6 +60,7 @@ def check_verification_status(out):
         if "ASSERT_ERROR" in  line:
             print("===============ALU_ERROR=============")
             assert_error  += 1 
+            shutil.copyfile(filename + ".c", "assert_" + str(assert_error)+".c") 
     return st
 
 
@@ -68,14 +70,13 @@ def run_single_ebpf_prog():
     global FUZZER_ST_VER_FAIL
 
     ebpf_gen = eBPFGenerator()
-    random_str = ebpf_gen.generate_instructions(random.randint(2,200) )#to do max_size 
-    c_contents  = cLoaderProg.LOADER_PROG_HEAD + random_str + cLoaderProg.LOADER_PROG_TAIL
+    random_str = ebpf_gen.generate_instructions(1000)#to do max_size 
+    c_contents  = cLoaderProg.LOADER_PROG_HEAD + cLoaderProg.LOADER_PROG_MAP_LOOKUP + random_str + cLoaderProg.LOADER_PROG_TAIL
 
     filename = "out_" + hex(random.randint(0xffffff, 0xfffffffffff))[2:]
     f = open(filename+".c","w")
     f.write(c_contents)
     f.close()
-
 
     os.sync() 
     build_cmd = "bash ./build_small.sh " + filename 
@@ -87,7 +88,7 @@ def run_single_ebpf_prog():
 
     ebpf_out = ebpf_out.stdout.decode("utf-8")
 
-    if(check_verification_status(ebpf_out)):
+    if(check_verification_status(ebpf_out,filename)):
 #        print("Verification Passed")
         FUZZER_ST_VER_PASS +=1
     else:
@@ -127,7 +128,7 @@ FUZZER_ST_VER_PASS = 0
 FUZZER_ST_VER_FAIL = 0
 
 
-threads = [Thread(target=fuzzer_task   , args=(x,))  for x in range(0,10)]
+threads = [Thread(target=fuzzer_task   , args=(x,))  for x in range(0,40)]
 
 t = time.clock()
 t_0 = timeit.default_timer()

@@ -5,11 +5,12 @@ import pprint
 import subprocess
 import sys
 
+IMM_FIXED_LIST = [ 0 , 1, 2, 0xffffFFFF ]
 BPF_EXIT = 0x90
 
 BPF_W =  0x00    # word
 BPF_H =  0x08    # half word
-BPF_B =  0x10    # byte 
+BPF_B =  0x10    # byte
 BPF_DW = 0x18
 
 BPF_IMM =  0x00  # used for 32-bit mov in classic BPF and 64-bit in eBPF 
@@ -118,23 +119,22 @@ class eBPFGenerator:
     # Returns STR
     def generate_instructions(self, target_insn_len):
         while len(self.random_insn_list) < target_insn_len:
-            insn_type = random.randint(0,INSN_TYPE_MAX-1)
-        
-            if(insn_type == INSN_TYPE_ALU):
+            insn_type = random.randint(0,2)
+            if insn_type == INSN_TYPE_ALU or insn_type == 2 :
                 self.gen_alu_insn()
             elif(insn_type == INSN_TYPE_MOV):
                 self.gen_mov_insn()
-            elif(insn_type == INSN_TYPE_LD):
-                self.gen_ld_insn() 
+#            elif(insn_type == INSN_TYPE_LD):
+#                self.gen_ld_insn() 
 #            elif(insn_type == INSN_TYPE_ST):
 #                 self.gen_st_insn()
-            elif(insn_type == INSN_TYPE_JMP):
-                self.gen_jmp_insn()
+#            elif(insn_type == INSN_TYPE_JMP):
+#                self.gen_jmp_insn()
         
         # Finish with Exit Instruction
         self.gen_exit_insn()
                 
-        self.fix_unintialized() 
+#        self.fix_unintialized() 
 
         return self.print_bpf_insn_to_str()
 
@@ -148,10 +148,14 @@ class eBPFGenerator:
         bpf_op_src = BPF_K if alu_imm == 1 else BPF_X 
 
         code =  self.BPF_OP(op) |  bpf_op_src |  bpf_alu_class ;
-        dst_reg = self.get_random_bpf_reg(0);
-        src_reg = 0 if alu_imm == 1 else random.choice(BPF_REG_LIST)
+        # dst_reg = self.get_random_bpf_reg(0);
+        dst_reg = random.choice([BPF_REG_4, BPF_REG_5,BPF_REG_6,BPF_REG_7,BPF_REG_8,BPF_REG_9])
+        
+        # src_reg = 0 if alu_imm == 1 else random.choice(BPF_REG_LIST)
+        src_reg = random.choice([BPF_REG_4, BPF_REG_5,BPF_REG_6,BPF_REG_7,BPF_REG_8,BPF_REG_9])
         off = 0
-        imm = random.randint(-0xffff,0xffff) if alu_imm == 1 else 0
+        # imm = random.randint(-0xffff,0xffff) if alu_imm == 1 else 0
+        imm = random.choice(IMM_FIXED_LIST) if alu_imm == 1 else 0
        
         insn = {}
         insn["code"] = code;
@@ -222,22 +226,36 @@ class eBPFGenerator:
         bpf_op_src = BPF_K if alu_imm == 1 else BPF_X 
 
         code =  self.BPF_OP(op) |  bpf_op_src |  bpf_alu_class ;
-        dst_reg = self.get_random_bpf_reg(0);
-        src_reg = 0 if alu_imm == 1 else random.choice(BPF_REG_LIST)
+        #dst_reg = self.get_random_bpf_reg(0);
+        dst_reg = random.choice([BPF_REG_4, BPF_REG_5,BPF_REG_6,BPF_REG_7,BPF_REG_8,BPF_REG_9])
+        
+        #src_reg = 0 if alu_imm == 1 else random.choice(BPF_REG_LIST)
+        src_reg = random.choice([BPF_REG_4, BPF_REG_5,BPF_REG_6,BPF_REG_7,BPF_REG_8,BPF_REG_9])
         off = 0
-        imm = random.randint(-0xffff,0xffff) if alu_imm == 1 else 0
-      
+        #imm = random.randint(-0xffff,0xffff) if alu_imm == 1 else 0
+        imm = random.choice(IMM_FIXED_LIST) if alu_imm == 1 else 0
+     
+        # SEMANTIC_FIX
         # limit shift values for LEFT and RIGHT shift OP
         insn_opcode = code & 0xf0
         if insn_opcode == BPF_LSH or insn_opcode == BPF_RSH:
             if imm:
                 max_shift =  63 if(is_64_bit) else 31;
-                imm = random.randint(0,max_shift)
-            
+                imm = random.choice([0,1,32])
+
+        # SEMANTIC_FIX
+        # To avoid div by Zero
+        if insn_opcode == BPF_DIV or insn_opcode == BPF_MOD:
+            imm = 1;
+            code = self.BPF_OP(BPF_ADD) |  bpf_op_src |  bpf_alu_class ;
+
+        # SEMANTIC_FIX
+        # NEG Operation (~ has no SRC reg and imm value)
         if insn_opcode == BPF_NEG:
             src_reg = 0 
             imm = 0 
             code = code & 0xf7 # clear the register/imm bit
+
         insn = {}
         insn["code"] = code;
         insn["dst_reg"] = dst_reg;
