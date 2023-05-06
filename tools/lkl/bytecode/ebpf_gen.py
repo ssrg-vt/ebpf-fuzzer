@@ -15,10 +15,13 @@ from threading import Condition
 from timeit import default_timer as timer
 from datetime import timedelta
 
+import threading
+prof_merge_lock = threading.Lock()
 
 
 PRINT_DEBUG=0
-MAX_RUN_COUNT = 1000
+MAX_RUN_COUNT = 50000
+elapsed_time=0;
 
 def triage_failure(verifier_out):
     file1 = open("verifier_error.txt", "a")  # append mode
@@ -63,6 +66,64 @@ def check_verification_status(out):
 
 
 def run_single_ebpf_prog():
+
+    global FUZZER_ST_VER_PASS
+    global FUZZER_ST_VER_FAIL
+    global elapsed_time
+
+    ebpf_gen = eBPFGenerator()
+    random_str = ebpf_gen.generate_instructions(random.randint(2,200) )#to do max_size
+    c_contents  = cLoaderProg.LOADER_PROG_HEAD + random_str + cLoaderProg.LOADER_PROG_TAIL
+
+    filename = "out_" + hex(random.randint(0xffffff, 0xfffffffffff))[2:]
+    f = open(filename+".c","w")
+    f.write(c_contents)
+    f.close()
+
+
+    os.sync()
+    build_cmd = "bash ./build_small.sh " + filename
+    build_out = subprocess.run(build_cmd.split(' '))
+
+    #my_env
+    my_env = os.environ.copy()
+    my_env["LLVM_PROFILE_FILE"] =   filename +  ".profraw"
+    # Execute
+    exec_cmd =  "./" + filename
+    ebpf_out = subprocess.run(exec_cmd.split(' '),stdout=subprocess.PIPE,env=my_env)
+
+    ebpf_out = ebpf_out.stdout.decode("utf-8")
+
+    if(check_verification_status(ebpf_out)):
+#        print("Verification Passed")
+        FUZZER_ST_VER_PASS +=1
+    else:
+#        print("Verification Failed")
+        FUZZER_ST_VER_FAIL +=1
+#        print(random_str)
+
+
+
+    prof_merge_cmd= "bash ./gen_cov.sh " + filename
+    #print(prof_merge_cmd)
+    prof_merge_lock.acquire()
+    prof_merge_out = subprocess.run(prof_merge_cmd.split(' '))
+    prof_merge_lock.release()
+
+
+    if os.path.exists(filename + ".o"):
+        os.remove(filename + ".o")
+    if os.path.exists(filename + "-in.o"):
+        os.remove(filename + "-in.o")
+    if os.path.exists(filename + ".c"):
+        os.remove(filename + ".c")
+    if os.path.exists(filename):
+        os.remove(filename)
+    if os.path.exists(filename + ".profraw"):
+        os.remove(filename  + ".profraw" )
+
+
+def _run_single_ebpf_prog():
     
     global FUZZER_ST_VER_PASS 
     global FUZZER_ST_VER_FAIL
@@ -94,6 +155,7 @@ def run_single_ebpf_prog():
 #        print("Verification Failed")
         FUZZER_ST_VER_FAIL +=1
 #        print(random_str)
+
 
     if os.path.exists(filename + ".o"):
         os.remove(filename + ".o")
@@ -129,7 +191,7 @@ FUZZER_ST_VER_FAIL = 0
 
 threads = [Thread(target=fuzzer_task   , args=(x,))  for x in range(0,10)]
 
-t = time.clock()
+t = time.time()
 t_0 = timeit.default_timer()
 
 for thread in threads:
@@ -151,7 +213,21 @@ while True:
     if elapsed_time == 0:
         elapsed_time = 1
     speed = round(total_run*1.0/(elapsed_time),1)
-    print("Time:%d  Pass:%d Fail:%d Total:%s Speed:%.1f AE=%d" % ( elapsed_time, FUZZER_ST_VER_PASS, FUZZER_ST_VER_FAIL, total_run ,speed,assert_error ))
+
+    
+#    print("Time:%d  Pass:%d Fail:%d Total:%s Speed:%.1f AE=%d" % ( elapsed_time, FUZZER_ST_VER_PASS, FUZZER_ST_VER_FAIL, total_run ,speed,assert_error ))
+    elapsed_time = round(elapsed_time,0)
+    ### offset 
+    #elapsed_time += 3865
+    if(elapsed_time % 5 == 0):
+        print("elapsed_time : ",elapsed_time);
+        prof_merge_cmd= "bash ./print_cov.sh "   + str(elapsed_time)
+        #print(prof_merge_cmd)
+        prof_merge_lock.acquire()
+        prof_merge_out = subprocess.run(prof_merge_cmd.split(' '))
+        prof_merge_lock.release()
+
+
     if total_run > MAX_RUN_COUNT:
         STOP_FUZZER = True
         break 

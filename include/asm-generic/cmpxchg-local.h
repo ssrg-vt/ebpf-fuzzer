@@ -20,8 +20,8 @@ static inline unsigned long __cmpxchg_local_generic(volatile void *ptr,
 	/*
 	 * Sanity checking, compile-time.
 	 */
-	if (size == 8 && sizeof(unsigned long) != 8)
-		wrong_size_cmpxchg(ptr);
+//	if (size == 8 && sizeof(unsigned long) != 8)
+		//wrong_size_cmpxchg(ptr);
 
 	raw_local_irq_save(flags);
 	switch (size) {
@@ -41,8 +41,8 @@ static inline unsigned long __cmpxchg_local_generic(volatile void *ptr,
 		if (prev == old)
 			*(u64 *)ptr = (u64)new;
 		break;
-	default:
-		wrong_size_cmpxchg(ptr);
+	//default:
+		//wrong_size_cmpxchg(ptr);
 	}
 	raw_local_irq_restore(flags);
 	return prev;

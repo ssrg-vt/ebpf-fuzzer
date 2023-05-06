@@ -75,7 +75,7 @@ unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
 #endif /* CONFIG_64BIT */
 
 	default:
-		__xchg_called_with_bad_pointer();
+		//__xchg_called_with_bad_pointer();
 		return x;
 	}
 }
