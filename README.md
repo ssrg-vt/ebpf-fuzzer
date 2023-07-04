@@ -4,7 +4,8 @@
 
 ```
 cp lkl_ebpf_config arch/lkl/configs/defconfig
-make ARCH=lkl defconfig 
+make ARCH=lkl defconfig
+cd tools/lkl
 make ARCH=lkl -j8
 ```
 
