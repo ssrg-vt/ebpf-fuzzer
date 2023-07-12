@@ -155,3 +155,6 @@ x509.genkey
 
 # Documentation toolchain
 sphinx_*/
+
+final.profdata
+graph.csv

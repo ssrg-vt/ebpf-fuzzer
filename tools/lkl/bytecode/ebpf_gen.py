@@ -19,6 +19,7 @@ import threading
 prof_merge_lock = threading.Lock()
 
 
+THREAD_COUNT=10
 PRINT_DEBUG=0
 MAX_RUN_COUNT = 50000
 elapsed_time=0;
@@ -189,7 +190,7 @@ FUZZER_ST_VER_PASS = 0
 FUZZER_ST_VER_FAIL = 0
 
 
-threads = [Thread(target=fuzzer_task   , args=(x,))  for x in range(0,10)]
+threads = [Thread(target=fuzzer_task   , args=(x,))  for x in range(0,THREAD_COUNT)]
 
 t = time.time()
 t_0 = timeit.default_timer()
@@ -220,7 +221,7 @@ while True:
     ### offset 
     #elapsed_time += 3865
     if(elapsed_time % 5 == 0):
-        print("elapsed_time : ",elapsed_time);
+        #print("elapsed_time : ",elapsed_time);
         prof_merge_cmd= "bash ./print_cov.sh "   + str(elapsed_time)
         #print(prof_merge_cmd)
         prof_merge_lock.acquire()

@@ -1,11 +1,12 @@
-
-#llvm-profdata-15 merge -sparse $1.profraw final.profdata -o  final.profdata
-
-#llvm-cov-15 report ./$1 -instr-profile=final.profdata -show-functions  ../../../kernel/bpf/verifier.c     | grep TOTAL 
-
-#llvm-cov-15 report  --show-functions ../../../kernel/bpf/verifier.o     --instr-profile final.profdata  ../../../kernel/bpf  | grep TOTAL
+# Sample Output of 'llvm-cov-15 report' :
+#
+# Name                                            Regions    Miss   Cover     Lines    Miss   Cover  Branches    Miss   Cover
+# ---------------------------------------------------------------------------------------------------------------------------
 
 seconds=$1
-regions=`llvm-cov-15 report  --show-functions ../../../kernel/bpf/verifier.o   --instr-profile final.profdata  ../../../kernel/bpf  |   grep TOTAL |  awk '{print $3}'`
-echo ${seconds},${regions} 
-echo ${seconds},${regions} >> graph.csv
+missing_regions=`llvm-cov-15 report  --show-functions ../../../kernel/bpf/verifier.o   --instr-profile final.profdata  ../../../kernel/bpf  |   grep TOTAL |  awk '{print $3}'`
+total_regions=`llvm-cov-15 report  --show-functions ../../../kernel/bpf/verifier.o   --instr-profile final.profdata  ../../../kernel/bpf  |   grep TOTAL |  awk '{print $2}'`
+
+covered_regions=$((total_regions-missing_regions))
+echo Time: ${seconds} secs, Basic-Block Coverage: ${covered_regions}/${total_regions} 
+echo ${seconds},${covered_regions} >> graph.csv
