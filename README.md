@@ -4,6 +4,11 @@
 0) Install prerequisites
 ```
 sudo apt install -y flex bison libelf-dev clang-15
+
+# install Clang-15
+wget https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh
+sudo ./llvm.sh 15
 ```
 
 1) Build LKL Kernel
@@ -12,8 +17,8 @@ sudo apt install -y flex bison libelf-dev clang-15
 git clone --single-branch -b dev https://github.com/ssrg-vt/ebpf-fuzzer.git
 cd ebpf-fuzzer
 cp lkl_ebpf_config arch/lkl/configs/defconfig
-make ARCH=lkl defconfig
-make -C tools/lkl ARCH=lkl -j8
+make ARCH=lkl defconfig CC=clang-15
+make -C tools/lkl ARCH=lkl CC=clang-15 -j8
 ```
 
 2) Build the lkl tools
