@@ -3,7 +3,7 @@
 ## Build and Test LKL
 0) Install prerequisites
 ```
-sudo apt install -y flex bison libelf-dev clang-15
+sudo apt install -y flex bison libelf-dev
 
 # install Clang-15
 wget https://apt.llvm.org/llvm.sh
