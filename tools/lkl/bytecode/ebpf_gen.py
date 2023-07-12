@@ -83,7 +83,7 @@ def run_single_ebpf_prog():
 
 
     os.sync()
-    build_cmd = "bash ./build_small.sh " + filename
+    build_cmd = "bash ./build.sh " + filename
     build_out = subprocess.run(build_cmd.split(' '))
 
     #my_env
