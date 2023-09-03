@@ -3,13 +3,14 @@
 ## Build and Test LKL
 0) Install prerequisites
 
-Use the docker image 
+Use the docker image with required dependencies.
 
 ```
 docker pull nkhusain/ebpf_fuzzer
 docker run -ti nkhusain/ebpf_fuzzer /bin/bash
 ```
-
+or
+Install in your machine directly
 ```
 sudo apt install -y flex bison libelf-dev
 
