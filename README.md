@@ -2,6 +2,14 @@
 
 ## Build and Test LKL
 0) Install prerequisites
+
+Use the docker image 
+
+```
+docker pull nkhusain/ebpf_fuzzer
+docker run -ti nkhusain/ebpf_fuzzer /bin/bash
+```
+
 ```
 sudo apt install -y flex bison libelf-dev
 
@@ -12,6 +20,8 @@ sudo ./llvm.sh 15
 ```
 
 1) Build LKL Kernel
+
+if you used docker, run `docker run -ti nkhusain/ebpf_fuzzer /bin/bash`
 
 ```
 git clone --single-branch -b dev https://github.com/ssrg-vt/ebpf-fuzzer.git
