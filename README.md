@@ -48,7 +48,7 @@ cd tools/lkl/bytecode/
 ```
 
 
-#### Run Random EBPF Generator
+#### Run eBPF Fuzzer
 
 ```
 cd tools/lkl/bytecode/
