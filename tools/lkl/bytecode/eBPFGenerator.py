@@ -1,4 +1,6 @@
-
+'''
+eBPFGenerator Class: Random instruction generator based on eBPF Syntax
+'''
 
 import random
 import pprint
@@ -31,7 +33,6 @@ BPF_ALU64 = 0x07
 
 BPF_INSN_CLASS = [ BPF_LD, BPF_LDX, BPF_ST, BPF_STX, BPF_ALU, BPF_JMP, BPF_JMP32, BPF_ALU64 ]
 BPF_INSN_CLASS_STR = [ "BPF_LD", "BPF_LDX", "BPF_ST", "BPF_STX", "BPF_ALU32", "BPF_JMP", "BPF_JMP32", "BPF_ALU64" ]
-
 
 BPF_X=0x08
 BPF_K=0x00
@@ -70,7 +71,6 @@ BPF_MOD=0x90
 BPF_XOR=0xa0
 BPF_MOV=0xb0
 
-
 BPF_ALU_OPS  = [ BPF_ADD, BPF_SUB, BPF_MUL, BPF_DIV, BPF_OR, BPF_AND, BPF_LSH, BPF_RSH, BPF_NEG, BPF_MOD, BPF_XOR,BPF_MOV]
 
 BPF_ALU_OPS_STR = ["BPF_ADD", "BPF_SUB", "BPF_MUL", "BPF_DIV", "BPF_OR", "BPF_AND", "BPF_LSH", "BPF_RSH", "BPF_NEG", "BPF_MOD", "BPF_XOR",  "BPF_MOV"] 
@@ -103,12 +103,9 @@ INSN_TYPE_MAX =5
 ST_TYPE_IMM = 0
 ST_TYPE_REG = 1
 
-
-
 class eBPFGenerator:
 
     reg_init = [None] * 11
-
 
     def __init__(self):
         self.random_insn_list = []
@@ -126,14 +123,11 @@ class eBPFGenerator:
                 self.gen_mov_insn()
             elif(insn_type == INSN_TYPE_LD):
                 self.gen_ld_insn() 
-#            elif(insn_type == INSN_TYPE_ST):
-#                 self.gen_st_insn()
             elif(insn_type == INSN_TYPE_JMP):
                 self.gen_jmp_insn()
         
         # Finish with Exit Instruction
         self.gen_exit_insn()
-                
         self.fix_unintialized() 
 
         return self.print_bpf_insn_to_str()
@@ -210,7 +204,6 @@ class eBPFGenerator:
         insn["imm"] = imm;
         
         self.random_insn_list.append(insn)
-
 
     def gen_alu_insn(self):
 
@@ -424,9 +417,6 @@ class eBPFGenerator:
         insn_str += "), "
         return insn_str
 
-
-
-
     def print_alu_insn(self,insn):
         insn_str =  BPF_INSN_CLASS_STR[ insn["code"] & 0x07 ]
         insn_str +=  "_REG" if insn["code"] & 0x8 else "_IMM"
@@ -439,7 +429,6 @@ class eBPFGenerator:
         insn_str += "), "
         return insn_str
 
-
     def print_ld_64_insn(self,insn_0,insn_1):
         
         insn_str = "BPF_LD_IMM64"
@@ -448,8 +437,6 @@ class eBPFGenerator:
         insn_str += ", "
         insn_str += hex( insn_1["imm"] <<32 |   insn_0["imm"])  
         insn_str += "), "
-
-
 
         return insn_str 
 
@@ -500,7 +487,6 @@ class eBPFGenerator:
         print("imm : " + hex(insn["imm"]))
         print("}")
 
-
     def get_random_bpf_reg(self,is_src_reg):
         return random.randint(0,9 + is_src_reg) #  R10 can be a source reg 
 
@@ -517,4 +503,3 @@ class eBPFGenerator:
             return True
 
         return False
-

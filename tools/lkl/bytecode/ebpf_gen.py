@@ -5,9 +5,8 @@ import sys
 import os
 import time
 import cLoaderProg
-from eBPFGenerator import eBPFGenerator
-
 import timeit
+import threading
 
 from threading import Thread
 from threading import Condition
@@ -15,14 +14,14 @@ from threading import Condition
 from timeit import default_timer as timer
 from datetime import timedelta
 
-import threading
-prof_merge_lock = threading.Lock()
-
+from eBPFGenerator import eBPFGenerator
 
 THREAD_COUNT=10
 PRINT_DEBUG=0
 MAX_RUN_COUNT = 50000
 elapsed_time=0;
+prof_merge_lock = threading.Lock()
+STOP_FUZZER = False
 
 def triage_failure(verifier_out):
     file1 = open("verifier_error.txt", "a")  # append mode
@@ -30,7 +29,6 @@ def triage_failure(verifier_out):
     file1.write(verifier_out[len(verifier_out)-5])
     file1.write("\n")
     file1.close()
-
 
 def random_bpf_insn_all_class():
 
@@ -49,14 +47,12 @@ def random_bpf_insn_all_class():
      
     return print_bpf_insn_to_str(random_insn_list)
 
-
 def check_verification_status(out):
 
     global assert_error 
     st = True
     output_lines = out.split("\n")
     for index,line in enumerate(output_lines) :
-#        print(line)
         if "BPF Verification Failed" in line:
             st = False
             triage_failure(output_lines[index:])
@@ -64,7 +60,6 @@ def check_verification_status(out):
             print("===============ALU_ERROR=============")
             assert_error  += 1 
     return st
-
 
 def run_single_ebpf_prog():
 
@@ -96,17 +91,11 @@ def run_single_ebpf_prog():
     ebpf_out = ebpf_out.stdout.decode("utf-8")
 
     if(check_verification_status(ebpf_out)):
-#        print("Verification Passed")
         FUZZER_ST_VER_PASS +=1
     else:
-#        print("Verification Failed")
         FUZZER_ST_VER_FAIL +=1
-#        print(random_str)
-
-
 
     prof_merge_cmd= "bash ./gen_cov.sh " + filename
-    #print(prof_merge_cmd)
     prof_merge_lock.acquire()
     prof_merge_out = subprocess.run(prof_merge_cmd.split(' '))
     prof_merge_lock.release()
@@ -123,7 +112,6 @@ def run_single_ebpf_prog():
     if os.path.exists(filename + ".profraw"):
         os.remove(filename  + ".profraw" )
 
-
 def _run_single_ebpf_prog():
     
     global FUZZER_ST_VER_PASS 
@@ -138,7 +126,6 @@ def _run_single_ebpf_prog():
     f.write(c_contents)
     f.close()
 
-
     os.sync() 
     build_cmd = "bash ./build_small.sh " + filename 
     build_out = subprocess.run(build_cmd.split(' '))
@@ -150,13 +137,9 @@ def _run_single_ebpf_prog():
     ebpf_out = ebpf_out.stdout.decode("utf-8")
 
     if(check_verification_status(ebpf_out)):
-#        print("Verification Passed")
         FUZZER_ST_VER_PASS +=1
     else:
-#        print("Verification Failed")
         FUZZER_ST_VER_FAIL +=1
-#        print(random_str)
-
 
     if os.path.exists(filename + ".o"):
         os.remove(filename + ".o")
@@ -167,8 +150,6 @@ def _run_single_ebpf_prog():
     if os.path.exists(filename):
         os.remove(filename)
 
-
-STOP_FUZZER = False
 
 def fuzzer_task(inp):
 
@@ -185,10 +166,8 @@ if len(sys.argv) == 2:
     if sys.argv[1] ==  "--use-last":
         use_last_code = True;
 
-
 FUZZER_ST_VER_PASS = 0
 FUZZER_ST_VER_FAIL = 0
-
 
 threads = [Thread(target=fuzzer_task   , args=(x,))  for x in range(0,THREAD_COUNT)]
 
@@ -198,11 +177,7 @@ t_0 = timeit.default_timer()
 for thread in threads:
     thread.start()
 
-
 last_print = -1
-
-#   if total_run % 5 == 0 and (total_run % 5) !=  last_print:
-#       last_print = total_run % 5
 
 assert_error = 0
 while True:
@@ -216,14 +191,9 @@ while True:
     speed = round(total_run*1.0/(elapsed_time),1)
 
     
-#    print("Time:%d  Pass:%d Fail:%d Total:%s Speed:%.1f AE=%d" % ( elapsed_time, FUZZER_ST_VER_PASS, FUZZER_ST_VER_FAIL, total_run ,speed,assert_error ))
     elapsed_time = round(elapsed_time,0)
-    ### offset 
-    #elapsed_time += 3865
     if(elapsed_time % 5 == 0):
-        #print("elapsed_time : ",elapsed_time);
         prof_merge_cmd= "bash ./print_cov.sh "   + str(elapsed_time)
-        #print(prof_merge_cmd)
         prof_merge_lock.acquire()
         prof_merge_out = subprocess.run(prof_merge_cmd.split(' '))
         prof_merge_lock.release()
@@ -235,9 +205,3 @@ while True:
     
 for thread in threads:
     thread.join()
-
-
-
-# Compile Loader Program 
-#if not use_last_code:    
-#    print(random_str)
